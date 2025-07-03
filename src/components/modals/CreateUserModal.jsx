@@ -22,24 +22,17 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
     
     const result = await execute(
       async () => {
+        console.log('Creating user with data:', formData)
+        
         // Yeni kullanıcı oluştur
         const signUpResult = await authService.signUp(formData.email, formData.password, {
-          full_name: formData.fullName
+          full_name: formData.fullName,
+          company: formData.company,
+          phone: formData.phone,
+          role: formData.role
         })
         
-        if (signUpResult.user) {
-          // Profil bilgilerini güncelle
-          await authService.ensureUserProfile({
-            ...signUpResult.user,
-            user_metadata: {
-              full_name: formData.fullName,
-              company: formData.company,
-              phone: formData.phone,
-              role: formData.role
-            }
-          })
-        }
-        
+        console.log('User creation result:', signUpResult)
         return signUpResult
       },
       {

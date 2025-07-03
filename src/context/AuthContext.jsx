@@ -18,6 +18,8 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const getInitialSession = async () => {
       try {
+        console.log('Getting initial session...')
+        
         // Demo user kontrolü
         const demoUser = localStorage.getItem('demo_user')
         if (demoUser) {
@@ -35,7 +37,10 @@ export const AuthProvider = ({ children }) => {
 
         const currentUser = await authService.getCurrentUser()
         if (currentUser) {
+          console.log('Current user loaded:', currentUser)
           setUser(currentUser)
+        } else {
+          console.log('No current user found')
         }
       } catch (error) {
         console.error('Error getting initial session:', error)
@@ -52,6 +57,8 @@ export const AuthProvider = ({ children }) => {
   const login = async (credentials) => {
     try {
       setLoading(true)
+      console.log('Login attempt for:', credentials.email)
+      
       const userData = await authService.signIn(credentials.email, credentials.password)
       
       console.log('Login successful, user data:', userData)
@@ -69,9 +76,16 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setLoading(true)
+      console.log('Register attempt for:', userData.email)
+      
       const data = await authService.signUp(userData.email, userData.password, {
-        full_name: userData.fullName
+        full_name: userData.fullName,
+        company: userData.company,
+        phone: userData.phone,
+        role: userData.role
       })
+      
+      console.log('Register successful:', data)
       return { success: true, data }
     } catch (error) {
       console.error('Register error:', error)
@@ -83,6 +97,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      console.log('Logout attempt')
       await authService.signOut()
       localStorage.removeItem('demo_user')
       setUser(null)

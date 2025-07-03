@@ -8,7 +8,7 @@ export function generateToken(user) {
     { 
       id: user.id, 
       email: user.email, 
-      role: user.role 
+      role: user.role || 'user'
     },
     JWT_SECRET,
     { expiresIn: '7d' }
@@ -19,6 +19,7 @@ export function verifyToken(token) {
   try {
     return jwt.verify(token, JWT_SECRET)
   } catch (error) {
+    console.error('Token verification error:', error)
     return null
   }
 }
@@ -36,9 +37,12 @@ export async function authenticateToken(req, res, next) {
       }
     }
 
+    console.log('Auth middleware - token:', token ? 'present' : 'missing')
+
     // Demo user için özel kontrol
     if (token && token.startsWith('demo-token-')) {
       const userId = token.replace('demo-token-', '')
+      console.log('Demo token detected for user:', userId)
       
       // Demo user bilgilerini oluştur
       const demoUser = {
@@ -55,6 +59,7 @@ export async function authenticateToken(req, res, next) {
     }
 
     if (!token) {
+      console.log('No token provided')
       return res.status(401).json({
         success: false,
         message: 'Erişim token\'ı gerekli'
@@ -63,11 +68,14 @@ export async function authenticateToken(req, res, next) {
 
     const decoded = verifyToken(token)
     if (!decoded) {
+      console.log('Invalid token')
       return res.status(403).json({
         success: false,
         message: 'Geçersiz token'
       })
     }
+
+    console.log('Token decoded successfully for user:', decoded.email)
 
     // Get user from database
     const user = await db.getAsync(
@@ -76,12 +84,14 @@ export async function authenticateToken(req, res, next) {
     )
 
     if (!user) {
+      console.log('User not found in database:', decoded.id)
       return res.status(403).json({
         success: false,
         message: 'Kullanıcı bulunamadı'
       })
     }
 
+    console.log('User authenticated successfully:', user.email)
     req.user = user
     next()
   } catch (error) {

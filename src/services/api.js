@@ -42,7 +42,10 @@ api.interceptors.response.use(
       if (errorMessage && (errorMessage.includes('token') || errorMessage.includes('Geçersiz') || errorMessage.includes('Erişim'))) {
         console.log('Invalid token detected, logging out...')
         localStorage.removeItem('demo_user')
-        window.location.href = '/login'
+        // Sadece login sayfasında değilsek yönlendir
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login'
+        }
         return Promise.reject(new Error('Oturum süresi doldu, lütfen tekrar giriş yapın'))
       }
     }
@@ -60,7 +63,10 @@ api.interceptors.response.use(
 export const authService = {
   async signIn(email, password) {
     try {
+      console.log('Attempting sign in for:', email)
       const { data } = await api.post('/auth/signin', { email, password })
+      
+      console.log('Sign in API response:', data)
       
       // Demo user için özel işlem
       if (email === 'admin@gateway.com') {
@@ -80,22 +86,40 @@ export const authService = {
         return demoUser
       }
       
-      return data.data
+      // Normal user için
+      if (data.success && data.data?.user) {
+        const userData = data.data.user
+        localStorage.setItem('demo_user', JSON.stringify(userData))
+        console.log('User data stored:', userData)
+        return userData
+      }
+      
+      throw new Error('Geçersiz API yanıtı')
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Giriş başarısız')
+      console.error('Sign in error:', error)
+      throw new Error(error.response?.data?.message || error.message || 'Giriş başarısız')
     }
   },
 
   async signUp(email, password, userData = {}) {
     try {
+      console.log('Attempting sign up for:', email, userData)
       const { data } = await api.post('/auth/signup', { 
         email, 
         password, 
         userData 
       })
-      return data.data
+      
+      console.log('Sign up API response:', data)
+      
+      if (data.success && data.data?.user) {
+        return data.data
+      }
+      
+      throw new Error('Geçersiz API yanıtı')
     } catch (error) {
-      throw new Error(error.response?.data?.message || 'Kayıt başarısız')
+      console.error('Sign up error:', error)
+      throw new Error(error.response?.data?.message || error.message || 'Kayıt başarısız')
     }
   },
 
@@ -103,6 +127,7 @@ export const authService = {
     try {
       await api.post('/auth/signout')
       localStorage.removeItem('demo_user')
+      console.log('Sign out successful')
     } catch (error) {
       console.error('Sign out error:', error)
       localStorage.removeItem('demo_user')
@@ -132,14 +157,22 @@ export const authService = {
       const demoUser = localStorage.getItem('demo_user')
       if (demoUser) {
         const user = JSON.parse(demoUser)
-        console.log('Current demo user:', user)
+        console.log('Current demo user from localStorage:', user)
         return user
       }
 
+      console.log('Fetching current user from API')
       const { data } = await api.get('/auth/user')
-      return data.data.user
+      
+      if (data.success && data.data?.user) {
+        return data.data.user
+      }
+      
+      return null
     } catch (error) {
       console.error('Error getting current user:', error)
+      // Hata durumunda localStorage'ı temizle
+      localStorage.removeItem('demo_user')
       return null
     }
   }

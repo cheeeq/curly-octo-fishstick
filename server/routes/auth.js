@@ -18,6 +18,8 @@ router.post('/signin', async (req, res) => {
       })
     }
 
+    console.log('Sign in attempt for:', email)
+
     // Demo user için özel durum
     if (email === 'admin@gateway.com') {
       console.log('Demo user login attempt')
@@ -58,11 +60,14 @@ router.post('/signin', async (req, res) => {
     )
 
     if (!user) {
+      console.log('User not found:', email)
       return res.status(401).json({
         success: false,
         message: 'Geçersiz e-posta veya şifre'
       })
     }
+
+    console.log('User found:', user.email)
 
     // For demo purposes, accept any password for existing users
     // In production, use: const validPassword = await bcrypt.compare(password, user.password_hash)
@@ -114,6 +119,8 @@ router.post('/signup', async (req, res) => {
       })
     }
 
+    console.log('Sign up attempt for:', email)
+
     // Check if user already exists
     const existingUser = await db.getAsync(
       'SELECT id FROM users WHERE email = ?',
@@ -121,6 +128,7 @@ router.post('/signup', async (req, res) => {
     )
 
     if (existingUser) {
+      console.log('User already exists:', email)
       return res.status(400).json({
         success: false,
         message: 'Bu e-posta adresi zaten kullanılıyor'
@@ -130,6 +138,9 @@ router.post('/signup', async (req, res) => {
     const userId = uuidv4()
     const passwordHash = await bcrypt.hash(password, 10)
 
+    console.log('Creating new user:', { userId, email, userData })
+
+    // Insert user into database
     await db.runAsync(`
       INSERT INTO users (id, email, password_hash, full_name, company, phone, role) 
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -143,10 +154,17 @@ router.post('/signup', async (req, res) => {
       userData.role || 'user'
     ])
 
+    console.log('User created successfully')
+
+    // Get the created user
     const user = await db.getAsync(
       'SELECT id, email, full_name, company, phone, role FROM users WHERE id = ?',
       [userId]
     )
+
+    if (!user) {
+      throw new Error('Kullanıcı oluşturuldu ancak geri alınamadı')
+    }
 
     const token = generateToken(user)
 
@@ -170,7 +188,7 @@ router.post('/signup', async (req, res) => {
     console.error('Sign up error:', error)
     res.status(500).json({
       success: false,
-      message: 'Kayıt olurken hata oluştu'
+      message: 'Kayıt olurken hata oluştu: ' + error.message
     })
   }
 })
@@ -178,6 +196,8 @@ router.post('/signup', async (req, res) => {
 // Get Current User
 router.get('/user', authenticateToken, async (req, res) => {
   try {
+    console.log('Get current user request for:', req.user?.email)
+    
     res.json({
       success: true,
       data: {
@@ -204,6 +224,7 @@ router.get('/user', authenticateToken, async (req, res) => {
 
 // Sign Out
 router.post('/signout', (req, res) => {
+  console.log('Sign out request')
   res.json({
     success: true,
     message: 'Başarıyla çıkış yapıldı'
