@@ -18,6 +18,7 @@ import {
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import CreateLicenseModal from '../components/modals/CreateLicenseModal'
+import EditLicenseModal from '../components/modals/EditLicenseModal'
 import ConfirmationModal from '../components/ui/ConfirmationModal'
 import { useApi, useAsyncAction } from '../hooks/useApi'
 import { licensesService, reportsService } from '../services/api'
@@ -28,6 +29,7 @@ const Licenses = () => {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterStatus, setFilterStatus] = useState('all')
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [selectedLicense, setSelectedLicense] = useState(null)
 
@@ -84,6 +86,11 @@ const Licenses = () => {
     }
   }
 
+  const handleEditClick = (license) => {
+    setSelectedLicense(license)
+    setShowEditModal(true)
+  }
+
   const handleDeleteClick = (license) => {
     setSelectedLicense(license)
     setShowDeleteModal(true)
@@ -109,10 +116,6 @@ const Licenses = () => {
     toast.success(`Lisans görüntüleniyor: ${license.license_key}`)
   }
 
-  const handleEditLicense = (license) => {
-    toast.info(`Lisans düzenleme özelliği yakında eklenecek: ${license.license_key}`)
-  }
-
   const handleGenerateReport = async () => {
     const result = await executeReport(
       () => reportsService.generateLicenseReport({ search: searchTerm, status: filterStatus }),
@@ -133,6 +136,11 @@ const Licenses = () => {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
     }
+  }
+
+  const handleModalSuccess = () => {
+    refetch()
+    setSelectedLicense(null)
   }
 
   if (loading) {
@@ -297,7 +305,7 @@ const Licenses = () => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => handleEditLicense(license)}
+                            onClick={() => handleEditClick(license)}
                             title="Düzenle"
                           >
                             <Edit className="w-4 h-4" />
@@ -342,7 +350,15 @@ const Licenses = () => {
       <CreateLicenseModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={refetch}
+        onSuccess={handleModalSuccess}
+      />
+
+      {/* Edit License Modal */}
+      <EditLicenseModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={handleModalSuccess}
+        license={selectedLicense}
       />
 
       {/* Delete Confirmation Modal */}

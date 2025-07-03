@@ -4,25 +4,50 @@ import { Package, Plus, Edit, Trash2, DollarSign } from 'lucide-react'
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import CreateProductModal from '../components/modals/CreateProductModal'
+import EditProductModal from '../components/modals/EditProductModal'
+import ConfirmationModal from '../components/ui/ConfirmationModal'
 import { useApi, useAsyncAction } from '../hooks/useApi'
 import { productsService } from '../services/api'
 import { format } from 'date-fns'
 
 const Products = () => {
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [selectedProduct, setSelectedProduct] = useState(null)
+  
   const { data: products, loading, refetch } = useApi(() => productsService.getAll(), [])
-  const { execute: executeDelete } = useAsyncAction()
+  const { execute: executeDelete, loading: deleteLoading } = useAsyncAction()
 
-  const handleDelete = async (productId) => {
-    if (confirm('Bu ürünü silmek istediğinizden emin misiniz?')) {
-      await executeDelete(
-        () => productsService.delete(productId),
-        {
-          successMessage: 'Ürün başarıyla silindi',
-          onSuccess: refetch
+  const handleEdit = (product) => {
+    setSelectedProduct(product)
+    setShowEditModal(true)
+  }
+
+  const handleDeleteClick = (product) => {
+    setSelectedProduct(product)
+    setShowDeleteModal(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedProduct) return
+
+    await executeDelete(
+      () => productsService.delete(selectedProduct.id),
+      {
+        successMessage: 'Ürün başarıyla silindi',
+        onSuccess: () => {
+          refetch()
+          setShowDeleteModal(false)
+          setSelectedProduct(null)
         }
-      )
-    }
+      }
+    )
+  }
+
+  const handleModalSuccess = () => {
+    refetch()
+    setSelectedProduct(null)
   }
 
   if (loading) {
@@ -76,13 +101,19 @@ const Products = () => {
                       <Package className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => handleEdit(product)}
+                        title="Düzenle"
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        onClick={() => handleDelete(product.id)}
+                        onClick={() => handleDeleteClick(product)}
+                        title="Sil"
                       >
                         <Trash2 className="w-4 h-4 text-error-500" />
                       </Button>
@@ -138,10 +169,32 @@ const Products = () => {
         </CardContent>
       </Card>
 
+      {/* Create Product Modal */}
       <CreateProductModal
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
-        onSuccess={refetch}
+        onSuccess={handleModalSuccess}
+      />
+
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={handleModalSuccess}
+        product={selectedProduct}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Ürünü Sil"
+        message={`"${selectedProduct?.name}" ürününü silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.`}
+        type="danger"
+        confirmText="Sil"
+        cancelText="İptal"
+        loading={deleteLoading}
       />
     </div>
   )

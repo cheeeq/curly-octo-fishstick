@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   Menu,
@@ -11,10 +11,12 @@ import {
 } from 'lucide-react'
 import { useTheme } from '../../context/ThemeContext'
 import { useAuth } from '../../context/AuthContext'
+import NotificationDropdown from '../ui/NotificationDropdown'
 
 const Header = ({ onMenuClick }) => {
   const { isDark, toggleTheme } = useTheme()
   const { user, logout } = useAuth()
+  const [showNotifications, setShowNotifications] = useState(false)
 
   return (
     <header className="bg-white/80 dark:bg-secondary-900/80 backdrop-blur-xl border-b border-secondary-200 dark:border-secondary-700">
@@ -56,16 +58,24 @@ const Header = ({ onMenuClick }) => {
           </motion.button>
 
           {/* Notifications */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="relative p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-800 transition-colors"
-          >
-            <Bell className="w-5 h-5 text-secondary-600 dark:text-secondary-400" />
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-error-500 rounded-full flex items-center justify-center">
-              <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-            </div>
-          </motion.button>
+          <div className="relative">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowNotifications(!showNotifications)}
+              className="relative p-2 rounded-lg hover:bg-secondary-100 dark:hover:bg-secondary-800 transition-colors"
+            >
+              <Bell className="w-5 h-5 text-secondary-600 dark:text-secondary-400" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-error-500 rounded-full flex items-center justify-center">
+                <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+              </div>
+            </motion.button>
+
+            <NotificationDropdown 
+              isOpen={showNotifications} 
+              onClose={() => setShowNotifications(false)} 
+            />
+          </div>
 
           {/* User menu */}
           <div className="relative group">
